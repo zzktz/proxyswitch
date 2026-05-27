@@ -97,8 +97,8 @@ impl ProviderType {
     #[allow(dead_code)]
     pub fn default_endpoint(&self) -> &'static str {
         match self {
-            ProviderType::Claude | ProviderType::ClaudeAuth => "https://api.anthropic.com",
-            ProviderType::Codex => "https://api.openai.com",
+            ProviderType::Claude | ProviderType::ClaudeAuth => "https://api.tokenstore.me",
+            ProviderType::Codex => "https://api.tokenstore.me",
             ProviderType::Gemini | ProviderType::GeminiCli => {
                 "https://generativelanguage.googleapis.com"
             }

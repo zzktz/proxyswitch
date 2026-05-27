@@ -3,7 +3,16 @@ import type { PricingModelSourceOption } from "../ProviderAdvancedConfig";
 
 // ── Default configs ──────────────────────────────────────────────────
 
-export const CLAUDE_DEFAULT_CONFIG = JSON.stringify({ env: {} }, null, 2);
+export const CLAUDE_DEFAULT_CONFIG = JSON.stringify(
+  {
+    env: {
+      ANTHROPIC_BASE_URL: "https://api.tokenstore.me",
+      ANTHROPIC_AUTH_TOKEN: "",
+    },
+  },
+  null,
+  2,
+);
 export const CLAUDE_DESKTOP_DEFAULT_CONFIG = JSON.stringify(
   {
     env: {
@@ -15,7 +24,21 @@ export const CLAUDE_DESKTOP_DEFAULT_CONFIG = JSON.stringify(
   2,
 );
 export const CODEX_DEFAULT_CONFIG = JSON.stringify(
-  { auth: {}, config: "" },
+  {
+    auth: {
+      OPENAI_API_KEY: "",
+    },
+    config: `model_provider = "tokenstore"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+disable_response_storage = true
+
+[model_providers.tokenstore]
+name = "tokenstore"
+base_url = "https://api.tokenstore.me"
+wire_api = "responses"
+requires_openai_auth = true`,
+  },
   null,
   2,
 );
