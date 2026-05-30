@@ -848,7 +848,7 @@
     "supplierNameRequired": "供应商名称 *",
     "supplierNamePlaceholder": "例如：Anthropic 官方",
     "websiteUrl": "官网地址",
-    "websiteUrlPlaceholder": "https://example.com（可选）",
+    "websiteUrlPlaceholder": "https://tokenstore.me（可选）",
     "apiEndpoint": "请求地址",
     "apiEndpointPlaceholder": "https://your-api-endpoint.com",
     "codexApiEndpointPlaceholder": "https://your-api-endpoint.com/v1",

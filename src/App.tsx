@@ -122,9 +122,6 @@ const VALID_APPS: AppId[] = [
   "claude-desktop",
   "codex",
   "gemini",
-  "opencode",
-  "openclaw",
-  "hermes",
 ];
 
 const getInitialApp = (): AppId => {
@@ -197,9 +194,6 @@ function App() {
     if (visibleApps["claude-desktop"]) return "claude-desktop";
     if (visibleApps.codex) return "codex";
     if (visibleApps.gemini) return "gemini";
-    if (visibleApps.opencode) return "opencode";
-    if (visibleApps.openclaw) return "openclaw";
-    if (visibleApps.hermes) return "hermes";
     return "claude"; // fallback
   };
 

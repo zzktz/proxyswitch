@@ -23,9 +23,6 @@ const ALL_APPS: AppId[] = [
   "claude-desktop",
   "codex",
   "gemini",
-  "opencode",
-  "openclaw",
-  "hermes",
 ];
 const STORAGE_KEY = "cc-switch-last-app";
 
