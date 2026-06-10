@@ -135,8 +135,8 @@ const brandedRoutes = (
 
 export const claudeDesktopProviderPresets: ClaudeDesktopProviderPreset[] = [
   {
-    name: "Claude Desktop Official",
-    websiteUrl: "https://claude.ai/download",
+    name: "TokenStore",
+    websiteUrl: "https://tokenstore.me",
     category: "official",
     baseUrl: "",
     mode: "direct",

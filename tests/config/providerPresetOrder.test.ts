@@ -39,7 +39,7 @@ describe("provider preset order", () => {
 
   it("Claude Desktop 预设包含官方登录入口", () => {
     expect(claudeDesktopProviderPresets[0]).toMatchObject({
-      name: "Claude Desktop Official",
+      name: "TokenStore",
       category: "official",
       baseUrl: "",
       mode: "direct",

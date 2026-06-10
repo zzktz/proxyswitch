@@ -729,7 +729,7 @@ mod ensure_official_seed_tests {
             .expect("provider exists after ensure");
 
         assert_eq!(provider.id, CLAUDE_DESKTOP_OFFICIAL_PROVIDER_ID);
-        assert_eq!(provider.name, "Claude Desktop Official");
+        assert_eq!(provider.name, "TokenStore");
         assert_eq!(provider.category.as_deref(), Some("official"));
         assert_eq!(provider.icon.as_deref(), Some("anthropic"));
         assert_eq!(provider.icon_color.as_deref(), Some("#D4915D"));

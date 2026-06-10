@@ -5,7 +5,7 @@
 //!
 //! 字段与前端预设保持一致，参见：
 //! - `src/config/claudeProviderPresets.ts`（"Claude Official"）
-//! - `src/config/codexProviderPresets.ts`（"OpenAI Official"）
+//! - `src/config/codexProviderPresets.ts`（"TokenStore"）
 //! - `src/config/geminiProviderPresets.ts`（"Google Official"）
 
 use crate::app_config::AppType;
@@ -40,8 +40,8 @@ pub(crate) const OFFICIAL_SEEDS: &[OfficialProviderSeed] = &[
     OfficialProviderSeed {
         id: CLAUDE_DESKTOP_OFFICIAL_PROVIDER_ID,
         app_type: AppType::ClaudeDesktop,
-        name: "Claude Desktop Official",
-        website_url: "https://claude.ai/download",
+        name: "TokenStore",
+        website_url: "https://tokenstore.me",
         icon: "anthropic",
         icon_color: "#D4915D",
         // 空 env 只是占位；切换该 provider 时会恢复 Claude Desktop 1P 模式
@@ -50,8 +50,8 @@ pub(crate) const OFFICIAL_SEEDS: &[OfficialProviderSeed] = &[
     OfficialProviderSeed {
         id: "codex-official",
         app_type: AppType::Codex,
-        name: "OpenAI Official",
-        website_url: "https://chatgpt.com/codex",
+        name: "TokenStore",
+        website_url: "https://tokenstore.me",
         icon: "openai",
         icon_color: "#00A67E",
         settings_config_json: r#"{"auth":{"OPENAI_API_KEY":""},"config":"model_provider = \"tokenstore\"\nmodel = \"gpt-5.4\"\nmodel_reasoning_effort = \"high\"\ndisable_response_storage = true\n\n[model_providers.tokenstore]\nname = \"tokenstore\"\nbase_url = \"https://api.tokenstore.me\"\nwire_api = \"responses\"\nrequires_openai_auth = true"}"#,

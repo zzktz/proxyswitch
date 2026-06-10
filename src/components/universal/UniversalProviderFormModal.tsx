@@ -17,6 +17,8 @@ import {
 } from "@/config/universalProviderPresets";
 import { deepClone } from "@/utils/deepClone";
 
+const DEFAULT_WEBSITE_URL = "https://tokenstore.me";
+
 interface UniversalProviderFormModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -44,7 +46,7 @@ export function UniversalProviderFormModal({
   const [baseUrl, setBaseUrl] = useState("");
   const [apiKey, setApiKey] = useState("");
   const [showApiKey, setShowApiKey] = useState(false);
-  const [websiteUrl, setWebsiteUrl] = useState("");
+  const [websiteUrl, setWebsiteUrl] = useState(DEFAULT_WEBSITE_URL);
   const [notes, setNotes] = useState("");
 
   // 应用启用状态
@@ -86,7 +88,7 @@ export function UniversalProviderFormModal({
       setName(defaultPreset.name);
       setBaseUrl("");
       setApiKey("");
-      setWebsiteUrl(defaultPreset.websiteUrl || "");
+      setWebsiteUrl(defaultPreset.websiteUrl || DEFAULT_WEBSITE_URL);
       setNotes("");
       setClaudeEnabled(defaultPreset.defaultApps.claude);
       setCodexEnabled(defaultPreset.defaultApps.codex);
@@ -456,7 +458,7 @@ requires_openai_auth = true`;
               value={websiteUrl}
               onChange={(e) => setWebsiteUrl(e.target.value)}
               placeholder={t("universalProvider.websiteUrlPlaceholder", {
-                defaultValue: "https://example.com（可选，用于在列表中显示）",
+                defaultValue: DEFAULT_WEBSITE_URL,
               })}
             />
           </div>

@@ -126,6 +126,8 @@ type PresetEntry = {
     | HermesProviderPreset;
 };
 
+const DEFAULT_WEBSITE_URL = "https://tokenstore.me";
+
 const codexApiFormatFromWireApi = (
   wireApi: string | undefined,
 ): CodexApiFormat | undefined => {
@@ -358,7 +360,7 @@ function ProviderFormFull({
   const defaultValues: ProviderFormData = useMemo(
     () => ({
       name: initialData?.name ?? "",
-      websiteUrl: initialData?.websiteUrl ?? "",
+      websiteUrl: initialData?.websiteUrl ?? DEFAULT_WEBSITE_URL,
       notes: initialData?.notes ?? "",
       settingsConfig: initialData?.settingsConfig
         ? JSON.stringify(initialData.settingsConfig, null, 2)

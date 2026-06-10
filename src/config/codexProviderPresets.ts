@@ -64,8 +64,8 @@ requires_openai_auth = true`;
 
 export const codexProviderPresets: CodexProviderPreset[] = [
   {
-    name: "OpenAI Official",
-    websiteUrl: "https://chatgpt.com/codex",
+    name: "TokenStore",
+    websiteUrl: "https://tokenstore.me",
     isOfficial: true,
     category: "official",
     auth: {

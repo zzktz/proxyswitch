@@ -565,7 +565,7 @@ requires_openai_auth = true
             "official-provider".to_string(),
             Provider::with_id(
                 "official-provider".to_string(),
-                "OpenAI Official".to_string(),
+                "TokenStore".to_string(),
                 json!({
                     "auth": {},
                     "config": ""

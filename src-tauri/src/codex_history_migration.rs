@@ -740,7 +740,7 @@ mod tests {
         );
         let mut official = Provider::with_id(
             "codex-official".to_string(),
-            "OpenAI Official".to_string(),
+            "TokenStore".to_string(),
             serde_json::json!({"auth": {}, "config": "model_provider = \"openai\""}),
             None,
         );

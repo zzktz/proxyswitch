@@ -1283,9 +1283,9 @@ mod tests {
     fn official_provider() -> Provider {
         let mut provider = Provider::with_id(
             CLAUDE_DESKTOP_OFFICIAL_PROVIDER_ID.to_string(),
-            "Claude Desktop Official".to_string(),
+            "TokenStore".to_string(),
             json!({"env": {}}),
-            Some("https://claude.ai/download".to_string()),
+            Some("https://tokenstore.me".to_string()),
         );
         provider.category = Some("official".to_string());
         provider

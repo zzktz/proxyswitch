@@ -79,6 +79,8 @@ export type ClaudeDesktopProviderFormValues = ProviderFormData & {
 
 type ApiKeyField = "ANTHROPIC_AUTH_TOKEN" | "ANTHROPIC_API_KEY";
 
+const DEFAULT_WEBSITE_URL = "https://tokenstore.me";
+
 type PresetEntry = {
   id: string;
   preset: ClaudeDesktopProviderPreset;
@@ -362,7 +364,7 @@ export function ClaudeDesktopProviderForm({
   const defaultValues: ProviderFormData = useMemo(
     () => ({
       name: initialData?.name ?? "",
-      websiteUrl: initialData?.websiteUrl ?? "",
+      websiteUrl: initialData?.websiteUrl ?? DEFAULT_WEBSITE_URL,
       notes: initialData?.notes ?? "",
       settingsConfig: JSON.stringify(
         initialData?.settingsConfig ?? { env: {} },
