@@ -1021,6 +1021,34 @@ pub fn run() {
                 });
             });
 
+            if crate::commands::is_proxyswitch_auto_connect_enabled() {
+                let app_handle = app.handle().clone();
+                tauri::async_runtime::spawn(async move {
+                    let tunnel_result = tauri::async_runtime::spawn_blocking(
+                        crate::commands::start_proxyswitch_tunnel,
+                    )
+                    .await;
+
+                    match tunnel_result {
+                        Ok(Ok(_)) => {
+                            let state = app_handle.state::<AppState>();
+                            if let Err(error) = state.db.set_global_proxy_url(Some("socks5://127.0.0.1:7890")) {
+                                log::error!("自动连接代理时保存配置失败: {error}");
+                                let _ = crate::commands::stop_proxyswitch_tunnel();
+                            } else if let Err(error) = crate::proxy::http_client::apply_proxy(Some("socks5://127.0.0.1:7890")) {
+                                log::error!("自动连接代理时应用配置失败: {error}");
+                                let _ = state.db.set_global_proxy_url(None);
+                                let _ = crate::commands::stop_proxyswitch_tunnel();
+                            } else {
+                                log::info!("ProxySwitch 已按设置自动连接代理");
+                            }
+                        }
+                        Ok(Err(error)) => log::warn!("ProxySwitch 自动连接失败: {error}"),
+                        Err(error) => log::warn!("ProxySwitch 自动连接任务失败: {error}"),
+                    }
+                });
+            }
+
             // Linux: 禁用 WebKitGTK 硬件加速，防止 EGL 初始化失败导致白屏
             #[cfg(target_os = "linux")]
             {
@@ -1327,6 +1355,13 @@ pub fn run() {
             commands::test_proxy_url,
             commands::get_upstream_proxy_status,
             commands::scan_local_proxies,
+            // ProxySwitch SSH SOCKS tunnel
+            commands::get_proxyswitch_status,
+            commands::get_proxyswitch_auto_connect,
+            commands::set_proxyswitch_auto_connect,
+            commands::diagnose_proxyswitch,
+            commands::start_proxyswitch_tunnel,
+            commands::stop_proxyswitch_tunnel,
             // Window theme control
             commands::set_window_theme,
             // Generic managed auth commands
