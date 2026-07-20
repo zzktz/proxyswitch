@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "ProxySwitch",
-  "version": "3.15.0",
-  "identifier": "com.ccswitch.desktop",
+  "version": "1.0.0",
+  "identifier": "com.zzktz.proxyswitch",
   "build": {
     "frontendDist": "../dist",
     "devUrl": "http://localhost:3000",
@@ -10,60 +10,14 @@
     "beforeBuildCommand": "pnpm run build:renderer"
   },
   "app": {
-    "windows": [
-      {
-        "label": "main",
-        "title": "",
-        "titleBarStyle": "Overlay",
-        "width": 1000,
-        "height": 650,
-        "minWidth": 900,
-        "minHeight": 600,
-        "visible": false,
-        "resizable": true,
-        "fullscreen": false,
-        "center": true
-      }
-    ],
-    "security": {
-      "csp": "default-src 'self'; img-src 'self' data: https: http:; script-src 'self'; style-src 'self' 'unsafe-inline'; connect-src 'self' ipc: http://ipc.localhost https: http:",
-      "assetProtocol": {
-        "enable": true,
-        "scope": []
-      }
-    }
+    "windows": [{ "label": "main", "title": "ProxySwitch", "width": 900, "height": 620, "minWidth": 720, "minHeight": 520, "visible": false, "resizable": true, "center": true }],
+    "security": { "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost https:; style-src 'self' 'unsafe-inline'" }
   },
   "bundle": {
     "active": true,
     "targets": "all",
-    "createUpdaterArtifacts": true,
-    "icon": [
-      "icons/32x32.png",
-      "icons/128x128.png",
-      "icons/128x128@2x.png",
-      "icons/icon.icns",
-      "icons/icon.ico"
-    ],
-    "windows": {
-      "wix": {
-        "template": "wix/per-user-main.wxs"
-      }
-    },
-    "macOS": {
-      "minimumSystemVersion": "12.0"
-    }
-  },
-  "plugins": {
-    "deep-link": {
-      "desktop": {
-        "schemes": ["ccswitch"]
-      }
-    },
-    "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDYwODVBRDQ4Q0M5QkNBREYKUldUZnlwdk1TSzJGWU9SdmwzZE9OUzlDNVR2ZUVTYjEvaFQvVERnL0NGc0lWSWhSd2JwY3dBck0K",
-      "endpoints": [
-        "https://github.com/zzktz/ts-switch/releases/latest/download/latest.json"
-      ]
-    }
+    "createUpdaterArtifacts": false,
+    "icon": ["icons/32x32.png", "icons/128x128.png", "icons/128x128@2x.png", "icons/icon.icns", "icons/icon.ico"],
+    "macOS": { "minimumSystemVersion": "12.0" }
   }
 }
