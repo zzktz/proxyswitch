@@ -37,6 +37,7 @@ pub struct Status {
     pub state: String,
     pub tunnel_running: bool,
     pub port_listening: bool,
+    pub system_proxy_enabled: bool,
     pub proxy_enabled: bool,
     pub auto_connect: bool,
     pub last_error: Option<String>,
@@ -122,6 +123,71 @@ fn discover_existing_tunnel() -> Option<u32> {
         })
         .filter(|pid| matching_tunnel(*pid))
 }
+#[cfg(target_os = "macos")]
+fn system_proxy_enabled() -> bool {
+    Command::new("/usr/sbin/scutil")
+        .arg("--proxy")
+        .output()
+        .map(|output| {
+            let proxy = String::from_utf8_lossy(&output.stdout);
+            proxy.contains("SOCKSEnable : 1")
+                && proxy.contains(&format!("SOCKSProxy : {HOST}"))
+                && proxy.contains(&format!("SOCKSPort : {PORT}"))
+        })
+        .unwrap_or(false)
+}
+#[cfg(not(target_os = "macos"))]
+fn system_proxy_enabled() -> bool {
+    false
+}
+#[cfg(target_os = "macos")]
+fn set_system_proxy(enabled: bool) -> Result<bool, String> {
+    let services = Command::new("/usr/sbin/networksetup")
+        .arg("-listallnetworkservices")
+        .output()
+        .map_err(|e| format!("无法读取网络服务: {e}"))?;
+    if !services.status.success() {
+        return Err("无法读取网络服务。".into());
+    }
+
+    let service_output = String::from_utf8_lossy(&services.stdout);
+    let names: Vec<_> = service_output
+        .lines()
+        .skip(1)
+        .map(str::trim)
+        .filter(|name| !name.is_empty() && !name.starts_with('*'))
+        .map(str::to_owned)
+        .collect();
+    if names.is_empty() {
+        return Err("未找到可用网络服务。".into());
+    }
+
+    let port = PORT.to_string();
+    for name in names {
+        if enabled {
+            let configured = Command::new("/usr/sbin/networksetup")
+                .args(["-setsocksfirewallproxy", &name, HOST, &port])
+                .status()
+                .map_err(|e| format!("无法配置 {name} 的 SOCKS 代理: {e}"))?;
+            if !configured.success() {
+                return Err(format!("无法配置 {name} 的 SOCKS 代理。"));
+            }
+        }
+        let state = if enabled { "on" } else { "off" };
+        let updated = Command::new("/usr/sbin/networksetup")
+            .args(["-setsocksfirewallproxystate", &name, state])
+            .status()
+            .map_err(|e| format!("无法更新 {name} 的 SOCKS 代理状态: {e}"))?;
+        if !updated.success() {
+            return Err(format!("无法更新 {name} 的 SOCKS 代理状态。"));
+        }
+    }
+    Ok(system_proxy_enabled())
+}
+#[cfg(not(target_os = "macos"))]
+fn set_system_proxy(_enabled: bool) -> Result<bool, String> {
+    Ok(false)
+}
 fn status() -> Status {
     let mut p = read();
     if p.pid.is_none() && port_open() {
@@ -153,6 +219,7 @@ fn status() -> Status {
         .into(),
         tunnel_running: running,
         port_listening: listening,
+        system_proxy_enabled: system_proxy_enabled(),
         proxy_enabled: p.proxy_enabled,
         auto_connect: p.auto_connect,
         last_error: error,
@@ -275,6 +342,10 @@ pub fn enable_proxyswitch() -> Result<Status, String> {
         .lock()
         .map_err(|_| "代理操作锁异常。".to_string())?;
     start()?;
+    if let Err(e) = set_system_proxy(true) {
+        let _ = stop();
+        return Err(e);
+    }
     let mut p = read();
     p.proxy_enabled = true;
     save(&p)?;
@@ -286,10 +357,12 @@ pub fn disable_proxyswitch() -> Result<Status, String> {
     let _operation = TUNNEL_OPERATION
         .lock()
         .map_err(|_| "代理操作锁异常。".to_string())?;
+    let system_proxy_result = set_system_proxy(false);
     let mut p = read();
     p.proxy_enabled = false;
     save(&p)?;
     stop()?;
+    system_proxy_result?;
     Ok(status())
 }
 #[tauri::command]
@@ -349,6 +422,12 @@ pub fn auto_connect() {
 
     if let Err(e) = start() {
         log::warn!("自动连接失败: {e}");
+        return;
+    }
+
+    if let Err(e) = set_system_proxy(true) {
+        let _ = stop();
+        log::warn!("启用系统代理失败: {e}");
         return;
     }
 
