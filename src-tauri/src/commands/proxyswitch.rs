@@ -100,6 +100,7 @@ fn matching_tunnel(pid: u32) -> bool {
                 && command.contains(&format!("{HOST}:{PORT}"))
                 && command.contains(&format!("{SSH_USER}@{SSH_HOST}"))
                 && command.contains(&SSH_PORT.to_string())
+                && command.contains("PROXYSWITCH_TUNNEL=1")
         })
         .unwrap_or(false)
 }
@@ -144,7 +145,7 @@ fn status() -> Status {
     Status {
         state: if running && p.proxy_enabled {
             "on"
-        } else if error.is_some() {
+        } else if p.proxy_enabled && error.is_some() {
             "error"
         } else {
             "off"
@@ -176,6 +177,8 @@ fn start() -> Result<(), String> {
         "ExitOnForwardFailure=yes".to_string(),
         "-o".to_string(),
         "ConnectTimeout=10".to_string(),
+        "-o".to_string(),
+        "SetEnv=PROXYSWITCH_TUNNEL=1".to_string(),
     ];
     if let Some(identity_path) = dirs::home_dir()
         .map(|home| home.join(SSH_IDENTITY_FILE))
@@ -216,10 +219,31 @@ fn stop() -> Result<(), String> {
     let mut p = read();
     if let Some(pid) = p.pid.filter(|id| alive(*id)) {
         #[cfg(unix)]
-        Command::new("kill")
+        let terminated = Command::new("/bin/kill")
             .args(["-TERM", &pid.to_string()])
             .status()
-            .map_err(|e| e.to_string())?;
+            .map_err(|e| format!("无法停止 SSH 隧道: {e}"))?;
+        #[cfg(unix)]
+        if !terminated.success() {
+            return Err("无法停止 SSH 隧道进程。".into());
+        }
+        #[cfg(unix)]
+        for _ in 0..20 {
+            if !alive(pid) {
+                p.pid = None;
+                return save(&p);
+            }
+            thread::sleep(Duration::from_millis(100));
+        }
+        #[cfg(unix)]
+        let killed = Command::new("/bin/kill")
+            .args(["-KILL", &pid.to_string()])
+            .status()
+            .map_err(|e| format!("无法强制停止 SSH 隧道: {e}"))?;
+        #[cfg(unix)]
+        if !killed.success() || alive(pid) {
+            return Err("SSH 隧道未能停止。".into());
+        }
     }
     p.pid = None;
     save(&p)

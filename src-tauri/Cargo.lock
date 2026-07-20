@@ -2721,7 +2721,7 @@ dependencies = [
 
 [[package]]
 name = "proxyswitch"
-version = "1.0.2"
+version = "1.0.3"
 dependencies = [
  "auto-launch",
  "dirs 5.0.1",
