@@ -14,6 +14,7 @@ const PORT: u16 = 7890;
 const SSH_HOST: &str = "154.21.84.35";
 const SSH_PORT: u16 = 12581;
 const SSH_USER: &str = "root";
+const SSH_IDENTITY_FILE: &str = ".ssh/154.21.84.35_ed25519";
 
 #[derive(Default, Deserialize, Serialize)]
 struct Preferences {
@@ -80,8 +81,44 @@ fn alive(pid: u32) -> bool {
 fn alive(_pid: u32) -> bool {
     false
 }
+#[cfg(unix)]
+fn matching_tunnel(pid: u32) -> bool {
+    Command::new("ps")
+        .args(["-p", &pid.to_string(), "-o", "command="])
+        .output()
+        .map(|output| {
+            let command = String::from_utf8_lossy(&output.stdout);
+            command.contains("ssh")
+                && command.contains(&format!("{HOST}:{PORT}"))
+                && command.contains(&format!("{SSH_USER}@{SSH_HOST}"))
+                && command.contains(&SSH_PORT.to_string())
+        })
+        .unwrap_or(false)
+}
+#[cfg(windows)]
+fn matching_tunnel(_pid: u32) -> bool {
+    false
+}
+fn discover_existing_tunnel() -> Option<u32> {
+    Command::new("lsof")
+        .args(["-nP", "-t", &format!("-iTCP:{PORT}"), "-sTCP:LISTEN"])
+        .output()
+        .ok()
+        .and_then(|output| {
+            String::from_utf8_lossy(&output.stdout)
+                .lines()
+                .next()?
+                .parse()
+                .ok()
+        })
+        .filter(|pid| matching_tunnel(*pid))
+}
 fn status() -> Status {
     let mut p = read();
+    if p.pid.is_none() && port_open() {
+        p.pid = discover_existing_tunnel();
+        let _ = save(&p);
+    }
     let process = p.pid.map(alive).unwrap_or(false);
     if !process {
         p.pid = None;
@@ -119,21 +156,34 @@ fn start() -> Result<(), String> {
     if port_open() {
         return Err("127.0.0.1:7890 已被其他进程占用。".into());
     }
+    let mut args = vec![
+        "-N".to_string(),
+        "-D".to_string(),
+        format!("{HOST}:{PORT}"),
+        "-p".to_string(),
+        SSH_PORT.to_string(),
+        "-o".to_string(),
+        "BatchMode=yes".to_string(),
+        "-o".to_string(),
+        "ExitOnForwardFailure=yes".to_string(),
+        "-o".to_string(),
+        "ConnectTimeout=10".to_string(),
+    ];
+    if let Some(identity_path) = dirs::home_dir()
+        .map(|home| home.join(SSH_IDENTITY_FILE))
+        .filter(|path| path.is_file())
+    {
+        args.extend([
+            "-i".to_string(),
+            identity_path.to_string_lossy().into_owned(),
+            "-o".to_string(),
+            "IdentitiesOnly=yes".to_string(),
+        ]);
+    }
+    args.push(format!("{SSH_USER}@{SSH_HOST}"));
+
     let mut child = Command::new("ssh")
-        .args([
-            "-N",
-            "-D",
-            &format!("{HOST}:{PORT}"),
-            "-p",
-            &SSH_PORT.to_string(),
-            "-o",
-            "BatchMode=yes",
-            "-o",
-            "ExitOnForwardFailure=yes",
-            "-o",
-            "ConnectTimeout=10",
-            &format!("{SSH_USER}@{SSH_HOST}"),
-        ])
+        .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null())
