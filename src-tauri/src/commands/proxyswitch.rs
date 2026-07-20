@@ -5,6 +5,10 @@ use std::{
     net::{SocketAddr, TcpStream},
     path::PathBuf,
     process::{Command, Stdio},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Mutex,
+    },
     thread,
     time::{Duration, Instant},
 };
@@ -15,6 +19,10 @@ const SSH_HOST: &str = "154.21.84.35";
 const SSH_PORT: u16 = 12581;
 const SSH_USER: &str = "root";
 const SSH_IDENTITY_FILE: &str = ".ssh/154.21.84.35_ed25519";
+
+// A manual stop must win over the one-shot startup auto-connect task.
+static MANUAL_STOP_REQUESTED: AtomicBool = AtomicBool::new(false);
+static TUNNEL_OPERATION: Mutex<()> = Mutex::new(());
 
 #[derive(Default, Deserialize, Serialize)]
 struct Preferences {
@@ -238,6 +246,10 @@ pub fn set_proxyswitch_auto_connect(enabled: bool) -> Result<bool, String> {
 }
 #[tauri::command]
 pub fn enable_proxyswitch() -> Result<Status, String> {
+    MANUAL_STOP_REQUESTED.store(false, Ordering::SeqCst);
+    let _operation = TUNNEL_OPERATION
+        .lock()
+        .map_err(|_| "代理操作锁异常。".to_string())?;
     start()?;
     let mut p = read();
     p.proxy_enabled = true;
@@ -246,6 +258,10 @@ pub fn enable_proxyswitch() -> Result<Status, String> {
 }
 #[tauri::command]
 pub fn disable_proxyswitch() -> Result<Status, String> {
+    MANUAL_STOP_REQUESTED.store(true, Ordering::SeqCst);
+    let _operation = TUNNEL_OPERATION
+        .lock()
+        .map_err(|_| "代理操作锁异常。".to_string())?;
     let mut p = read();
     p.proxy_enabled = false;
     save(&p)?;
@@ -298,9 +314,31 @@ pub async fn diagnose_proxyswitch() -> Diagnostic {
     }
 }
 pub fn auto_connect() {
-    if read().auto_connect {
-        if let Err(e) = enable_proxyswitch() {
-            log::warn!("自动连接失败: {e}");
+    let Ok(_operation) = TUNNEL_OPERATION.lock() else {
+        log::warn!("自动连接失败: 代理操作锁异常。");
+        return;
+    };
+
+    if !read().auto_connect || MANUAL_STOP_REQUESTED.load(Ordering::SeqCst) {
+        return;
+    }
+
+    if let Err(e) = start() {
+        log::warn!("自动连接失败: {e}");
+        return;
+    }
+
+    // A click on "关闭代理" can arrive while the SSH process is starting.
+    if MANUAL_STOP_REQUESTED.load(Ordering::SeqCst) {
+        if let Err(e) = stop() {
+            log::warn!("停止已取消的自动连接失败: {e}");
         }
+        return;
+    }
+
+    let mut p = read();
+    p.proxy_enabled = true;
+    if let Err(e) = save(&p) {
+        log::warn!("保存自动连接状态失败: {e}");
     }
 }
