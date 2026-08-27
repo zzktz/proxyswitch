@@ -19,6 +19,7 @@ const SSH_HOST: &str = "154.21.84.35";
 const SSH_PORT: u16 = 12581;
 const SSH_USER: &str = "root";
 const SSH_IDENTITY_FILE: &str = ".ssh/154.21.84.35_ed25519";
+const SSH_KNOWN_HOSTS_FILE: &str = "known_hosts";
 
 // A manual stop must win over the one-shot startup auto-connect task.
 static MANUAL_STOP_REQUESTED: AtomicBool = AtomicBool::new(false);
@@ -58,6 +59,12 @@ fn file() -> PathBuf {
         .unwrap_or_else(|| PathBuf::from("."))
         .join("ProxySwitch")
         .join("settings.json")
+}
+fn known_hosts_file() -> PathBuf {
+    file()
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."))
+        .join(SSH_KNOWN_HOSTS_FILE)
 }
 fn read() -> Preferences {
     fs::read_to_string(file())
@@ -239,6 +246,9 @@ fn start() -> Result<(), String> {
     if port_open() {
         return Err("127.0.0.1:7890 已被其他进程占用。".into());
     }
+    let known_hosts = known_hosts_file();
+    fs::create_dir_all(known_hosts.parent().ok_or("invalid known hosts path")?)
+        .map_err(|e| format!("无法创建 SSH 配置目录: {e}"))?;
     let mut args = vec![
         "-N".to_string(),
         "-D".to_string(),
@@ -247,6 +257,10 @@ fn start() -> Result<(), String> {
         SSH_PORT.to_string(),
         "-o".to_string(),
         "BatchMode=yes".to_string(),
+        "-o".to_string(),
+        "StrictHostKeyChecking=accept-new".to_string(),
+        "-o".to_string(),
+        format!("UserKnownHostsFile={}", known_hosts.to_string_lossy()),
         "-o".to_string(),
         "ExitOnForwardFailure=yes".to_string(),
         "-o".to_string(),

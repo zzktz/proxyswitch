@@ -1,6 +1,6 @@
 [package]
 name = "proxyswitch"
-version = "1.0.5"
+version = "1.0.6"
 description = "Desktop SSH SOCKS proxy switcher"
 license = "MIT"
 repository = "https://github.com/zzktz/proxyswitch"
