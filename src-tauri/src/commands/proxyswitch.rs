@@ -87,8 +87,15 @@ fn alive(pid: u32) -> bool {
         .unwrap_or(false)
 }
 #[cfg(windows)]
-fn alive(_pid: u32) -> bool {
-    false
+fn alive(pid: u32) -> bool {
+    Command::new("tasklist")
+        .args(["/FI", &format!("PID eq {pid}"), "/FO", "CSV", "/NH"])
+        .output()
+        .map(|output| {
+            let listing = String::from_utf8_lossy(&output.stdout);
+            listing.contains(&format!("\"{pid}\""))
+        })
+        .unwrap_or(false)
 }
 #[cfg(unix)]
 fn matching_tunnel(pid: u32) -> bool {
@@ -260,13 +267,21 @@ fn start() -> Result<(), String> {
     }
     args.push(format!("{SSH_USER}@{SSH_HOST}"));
 
-    let mut child = Command::new("ssh")
+    let mut command = Command::new("ssh");
+    command
         .args(args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
-        .stderr(Stdio::null())
+        .stderr(Stdio::piped());
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        command.creation_flags(CREATE_NO_WINDOW);
+    }
+    let mut child = command
         .spawn()
-        .map_err(|e| format!("启动 SSH 隧道失败: {e}"))?;
+        .map_err(|e| format!("启动 SSH 隧道失败，请确认已安装 Windows OpenSSH Client：{e}"))?;
     for _ in 0..30 {
         if port_open() {
             let mut p = read();
@@ -274,8 +289,20 @@ fn start() -> Result<(), String> {
             save(&p)?;
             return Ok(());
         }
-        if child.try_wait().ok().flatten().is_some() {
-            return Err("SSH 隧道启动失败，请检查密钥和服务器连接。".into());
+        if child
+            .try_wait()
+            .map_err(|e| format!("检查 SSH 隧道状态失败: {e}"))?
+            .is_some()
+        {
+            let output = child
+                .wait_with_output()
+                .map_err(|e| format!("读取 SSH 错误信息失败: {e}"))?;
+            let detail = String::from_utf8_lossy(&output.stderr).trim().to_string();
+            return Err(if detail.is_empty() {
+                "SSH 隧道启动失败，请检查密钥和服务器连接。".into()
+            } else {
+                format!("SSH 隧道启动失败：{detail}")
+            });
         }
         thread::sleep(Duration::from_millis(200));
     }
@@ -310,6 +337,16 @@ fn stop() -> Result<(), String> {
         #[cfg(unix)]
         if !killed.success() || alive(pid) {
             return Err("SSH 隧道未能停止。".into());
+        }
+        #[cfg(windows)]
+        {
+            let terminated = Command::new("taskkill")
+                .args(["/PID", &pid.to_string(), "/T", "/F"])
+                .output()
+                .map_err(|e| format!("无法停止 SSH 隧道: {e}"))?;
+            if !terminated.status.success() && alive(pid) {
+                return Err("SSH 隧道未能停止。".into());
+            }
         }
     }
     p.pid = None;
